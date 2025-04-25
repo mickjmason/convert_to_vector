@@ -1,103 +1,103 @@
-# Bitmap to SVG Converter (`bitmap2svg.py`)
+# Bitmap to SVG Converter
 
-Convert bitmap images (JPG, PNG, etc.) to smooth, colored vector SVGs using KMeans color clustering or your own custom color palette.
+This is a high-quality, customizable **bitmap (JPG/PNG) to SVG vector converter** script written in Python by ChatGpt, with lots and lots (and lots) of input from me.
 
----
-
-## ✨ Features
-
-- **Automatic Color Reduction:** Use KMeans to reduce your image to any number of colors for clean SVGs.
-- **Custom Palette Support:** Specify exact RGB or CMYK colors to use in the SVG output.
-- **Contiguous Vector Regions:** Produces contiguous vector areas (not pixelated), great for editing in vector programs.
-- **Noise Reduction:** Removes tiny objects and holes for smooth, clean results.
-- **Path Simplification:** Optional smoothing of shapes with the Ramer–Douglas–Peucker algorithm.
-- **SVG Output:** Outputs standard, scalable SVG with each region as a path and correct color fill.
-- **Debugging:** Saves a black-and-white mask PNG for each color to help you debug or inspect region extraction.
+It combines:
+- Image quantization using k-means clustering,
+- Morphological cleaning to remove noise,
+- Smooth, artifact-free contour tracing,
+- Savitzky-Golay smoothing,
+- RDP (Douglas-Peucker) simplification,
+- Full support for user-specified color palettes,
+- Easy CLI (command line) usage.
 
 ---
 
-## 🛠 Installation
+## Features
 
-Make sure you have Python 3.7 or higher.
+- **Converts raster images (JPG, PNG) into vector SVGs with smooth, clean outlines.**
+- Choose the number of colors, blurring amount, contour simplification, and even the exact colors.
+- Advanced smoothing to reduce jagged edges, with user control over window size.
+- Outputs SVGs that are easy to edit in vector tools (Illustrator, Inkscape, Figma, etc.).
+- Open source and fully scriptable.
 
-Install dependencies using pip:
+---
+
+## Installation
+
+Install Python 3.7+ if you don't have it already.
+
+Install required Python libraries:
 
 ```bash
-pip install pillow numpy scikit-image scikit-learn svgwrite shapely
+pip install numpy pillow scikit-image svgwrite scikit-learn shapely scipy
+```
+---
+
+## Usage
+```bash 
+python bitmap2svg.py input.png output.svg [--colors N] [--blur RADIUS] [--simplify EPSILON] [--minarea MIN] [--palette PALETTE] [--smoothwin WIN]
+```
+
+### Example
+```bash
+python bitmap2svg.py myimage.jpg out.svg --colors 6 --blur 2 --simplify 1.2 --smoothwin 5
 ```
 
 ---
 
-## 🚀 Usage
+## Parameters
 
-### Basic usage (auto color quantization):
+| Parameter      | Type    | Default | Description |
+|----------------|---------|---------|-------------|
+| `input`        | string  | *required* | Path to input image (PNG or JPG) |
+| `output`       | string  | *required* | Path to output SVG file |
+| `--colors`     | int     | 8       | Number of colors to use for SVG palette. Fewer colors = more stylized. |
+| `--blur`       | float   | 2       | Amount of Gaussian blur before vectorizing. Higher values reduce noise but also detail. |
+| `--simplify`   | float   | 1.5     | RDP simplification epsilon. Higher = smoother, fewer nodes. Lower = more detail. |
+| `--minarea`    | int     | 40      | Minimum number of points for a region to be kept. Increases this to skip tiny shapes. |
+| `--palette`    | string  | None    | Semicolon-separated RGB list, e.g. `"255,0,0;0,255,0;0,0,255"`. If not given, palette is auto-chosen by k-means. |
+| `--smoothwin`  | int     | 7       | Smoothing window size for Savitzky-Golay smoothing. Odd integer, e.g. 3, 5, 7. Higher values = smoother, but too high can cause distortion. |
 
+---
+
+### Palette Example
+
+To force output colors, use:
 ```bash
-python bitmap2svg.py input.jpg output.svg --colors 8
-```
-Converts `input.jpg` to an SVG with 8 dominant colors.
-
-### Specify your own color palette (RGB):
-
-```bash
-python bitmap2svg.py input.jpg output.svg --palette "255,0,0;0,255,0;0,0,255;255,255,0;0,0,0"
-```
-This uses red, green, blue, yellow, and black as the only colors in the output.
-
-### Advanced options:
-
-- `--blur N` — Apply Gaussian blur before quantizing (default: `2`)
-- `--simplify N` — Simplify region borders (higher = simpler, default: `1.5`)
-- `--minarea N` — Ignore regions with fewer than N points (default: `40`)
-
-**Example:**
-
-```bash
-python bitmap2svg.py input.png output.svg --colors 5 --blur 1 --simplify 2 --minarea 30
+python bitmap2svg.py input.png output.svg --palette "0,0,0;255,255,255;255,0,0"
 ```
 
----
-
-## 🖼 How It Works
-
-1. **Reads your image** (any format supported by PIL).
-2. **Optionally blurs** to reduce noise.
-3. **Reduces to a set of color regions** with either KMeans or your custom palette.
-4. **Finds all contiguous areas** of each color using image processing.
-5. **Converts those areas to SVG paths,** with optional smoothing.
-6. **Outputs a standard SVG** file you can use in Inkscape, Illustrator, etc.
+This restricts the SVG to only black, white and red.
 
 ---
 
-## ⚡ Example Palettes
+## How It Works
 
-- 3-color grayscale: `"0,0,0;128,128,128;255,255,255"`
-- 5-color CMYK-style: `"0,255,255,0;255,0,255,0;255,255,0,0;0,0,0,255;255,255,255,0"`
-
----
-
-## 📝 Notes
-
-- For CMYK values, they are auto-converted to RGB using a simple formula. For best results, provide RGB.
-- The script saves a `mask_N.png` for each color (N) for debugging (delete these if not needed).
-- If your output SVG appears upside down, uncomment the Y-flip line in the code.
+1. **Preprocess**: Optionally blur the image to reduce noise.
+2. **Quantization**: Convert the image to `N` colors using k-means clustering or a user-provided palette.
+3. **Contour Extraction**: For each color, find all continuous color regions using skimage.
+4. **Smoothing**: Optionally apply Savitzky-Golay smoothing to each shape’s path.
+5. **Simplification**: Apply RDP simplification for edit-friendly SVG curves.
+6. **SVG Generation**: Write each smoothed, simplified region as a `<path>` in the SVG.
 
 ---
 
-## 🛟 Troubleshooting
+## Tips
 
-- If your SVG is all one color: Make sure you specified the correct number of colors/palette entries.
-- If you get errors about `path.shape[1]`, your environment may have an old NumPy—update to the latest version.
-- For jagged or noisy regions, increase `--blur` or `--simplify` (or both).
-- For more details per region, decrease `--simplify` and `--minarea`.
-
----
-
-
-## 🤝 Credits
-
-Created by a collaborative workflow using OpenAI ChatGPT and iterative user feedback.
+- Use lower `--colors` and higher `--simplify` for more abstract, “posterized” looks.
+- Use lower `--simplify` and a small `--smoothwin` for highly accurate tracing.
+- Set a custom `--palette` to lock output to brand or design colors.
+- For best results, clean your input image (remove transparency, crop whitespace).
 
 ---
 
-**Happy vectorizing!**
+## Troubleshooting
+
+- **Artifacts or stray lines:** Lower the smoothing window or increase `--minarea`.
+- **Too blocky or too many points:** Raise or lower `--simplify`.
+- **Not enough detail:** Lower `--simplify` and/or lower `--blur`.
+
+---
+
+Created with the help of [ChatGPT](https://chat.openai.com/) and hours of experimentation.
